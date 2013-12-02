@@ -16,7 +16,7 @@ class resource_config(object):
         settings = self.__dict__.copy()
 
         def callback(context, name, ob):
-            settings['resource'] = instance on . lower;
+            #settings['resource'] = instance on . lower;
             config = context.config.with_package(info.module)
             config.add_route(settings['resource'], settings['path']+'.{format}')
             config.add_view(ob, attr='index', route_name=settings['resource'])
