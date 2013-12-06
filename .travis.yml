@@ -9,5 +9,5 @@ before_script:
 script:
   nosetests
 after_success:
-  echo -e "[report]\nomit =\n    tests/*" > .coverage.rc
-  coveralls
+  - echo -e "[report]\nomit =\n    tests/*" > .coverage.rc
+  - coveralls
