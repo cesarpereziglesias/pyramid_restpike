@@ -1,2 +1,2 @@
-venusian
+venusian>=1.0a3
 pyramid
