@@ -18,8 +18,7 @@ class resource_config(object):
         def callback(context, name, ob):
             config = context.config.with_package(info.module)
 
-            #TODO: Route could be defined by param (resource='resource_name')
-            route = ob.__name__.lower()
+            route = settings.get('resource', ob.__name__.lower())
             route_list = route + '_list'
             route_new = route + '_new'
             route_edit = route + '_edit'
