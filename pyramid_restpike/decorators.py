@@ -16,54 +16,53 @@ class resource_config(object):
         settings = self.__dict__.copy()
 
         def callback(context, name, ob):
-            #settings['resource'] = instance on . lower;
             config = context.config.with_package(info.module)
 
-            configurations = [('', '.{format}', 'index', 'GET'),
-                              ('_new', '/new.{format}', 'new', 'GET'),
-                              ('_create', '/create', 'create', 'POST'),
-                              ('_edit', '/{id};edit.{format}', 'edit', 'GET'),
-                              ('_show', '/{id}.{format}', 'show', 'GET'),
-                              ('_update', '/{id}', 'update', 'POST'),
-                              ('_delete', '/{id}', 'delete', 'DELETE')]
+            #TODO: Route could be defined by param (resource='resource_name')
+            route = ob.__name__.lower()
+            route_list = route + '_list'
+            route_new = route + '_new'
+            route_edit = route + '_edit'
+            route_show = route + '_show'
+            route_id = route + '_id'
 
-            for action in configurations:
-                config.add_route(settings['resource']+action[0],
-                                 settings['path']+action[1])
-                config.add_view(ob,
-                                attr=action[2],
-                                route_name=settings['resource']+action[0],
-                                request_method=action[3])          
+            path = settings['path']
 
-            # config.add_route(settings['resource'], settings['path']+'.{format}')
-            # config.add_view(ob, attr='index', route_name=settings['resource'])
+            routes = (
+                (route, path + ''),
+                (route_list, path + '.{format}'),
+                (route_new, path + '/new'),
+                (route_edit, path + '/{id};edit'),
+                (route_show, path + '/{id}.{format}'),
+                (route_id, path + '/{id}'),
+            )
 
-            # config.add_route(settings['resource']+'_new', settings['path']+'.{format}/new')
-            # config.add_view(ob, attr='new', route_name=settings['resource']+'_new')
+            [config.add_route(*route_args) for route_args in routes]
 
-            # config.add_route(settings['resource']+'_create', settings['path']+'/create')
-            # config.add_view(ob, attr='create', route_name=settings['resource']+'_create', request_method='POST')
+            views = (
+                {'route_name': route, 'attr': 'create', 'request_method': 'POST'},
+                {'route_name': route_list, 'attr': 'index', 'request_method': 'GET'},
+                {'route_name': route_new, 'attr': 'new', 'request_method': 'GET'},
+                {'route_name': route_show, 'attr': 'show', 'request_method': 'GET'},
+                {'route_name': route_id, 'attr': 'update', 'request_method': 'PUT'},
+                {'route_name': route_id, 'attr': 'delete', 'request_method': 'DELETE'},
+                {'route_name': route_edit, 'attr': 'edit', 'request_method': 'GET'}
+            )
 
-            # config.add_route(settings['resource']+'_edit', settings['path']+'.{format}/edit/{id}')
-            # config.add_view(ob, attr='edit', route_name=settings['resource']+'_edit')
-
-            # config.add_route(settings['resource']+'_update', settings['path']+'/update')
-            # config.add_view(ob, attr='update', route_name=settings['resource']+'_update', request_method='POST')
-
-            # config.add_route(settings['resource']+'_delete', settings['path']+'/delete/{id}')
-            # config.add_view(ob, attr='delete', route_name=settings['resource']+'_delete')            
-
-            # config.add_route(settings['resource']+'_show', settings['path']+'.{format}/{id}')
-            # config.add_view(ob, attr='show', route_name=settings['resource']+'_show')
+            [config.add_view(ob, **key_view_config_args)
+                for key_view_config_args in views]
 
         info = self.venusian.attach(wrapped, callback)
         return wrapped
 
 
 class resource_renderer(object):
-    _default_format = 'json'
 
-    def __init__(self, **renderers):
+    def __init__(self, *default, **renderers):
+        if len(default) > 1:
+            raise Exception('*args can be greater than 1')
+
+        self._default = None if len(default) == 0 else default[0]
         self._renderers = renderers
 
     def _check_format(self, format_):
@@ -71,9 +70,11 @@ class resource_renderer(object):
 
     def __call__(self, wrapped):
         def callback(resource):
-            format_ = resource.request.matchdict['format']
-            if self._check_format(format_):
-                return Response(render(self._renderers[format_], wrapped(resource), request=resource.request))
+            format_ = resource.request.matchdict.get('format', None)
+            renderer = self._renderers[format_] if format_ is not None else self._default
+
+            if renderer is not None:
+                return Response(render(renderer, wrapped(resource), request=resource.request))
             #else: //Throw 404 error
 
         return callback

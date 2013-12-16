@@ -13,7 +13,7 @@ class TestResourceConfig(object):
 
     def test_pass(self):
 
-        decorator = self._makeOne(resource='sut', path='/sut')
+        decorator = self._makeOne(path='/sut')
         venusian = DummyVenusian()
         decorator.venusian = venusian
 
